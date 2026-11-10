@@ -1,0 +1,99 @@
+# Local demo: the whole application on fictional data, in simulation mode.
+#
+#   docker compose up --build
+#   open http://localhost:8080      password: demo-password-1234
+#   docker compose down -v          removes the demo database
+#
+# The application containers sit on an internal network with no route to the outside, so the demo
+# cannot send an email or call a provider, even by mistake. Only the proxy is published, on localhost.
+#
+# The key, password hash and database password below protect invented data and are public on
+# purpose. Generate your own for anything else (see backend/.env.example).
+name: lumelia-outreach
+
+x-app: &app
+  build: .
+  image: lumelia-outreach:local
+  networks: [internal]
+  environment: &environment
+    LUMELIA_DATABASE_URL: postgresql+psycopg://lumelia:lumelia@db:5432/lumelia
+    LUMELIA_ENCRYPTION_KEY: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
+    LUMELIA_ACCESS_PASSWORD_HASH: $$argon2id$$v=19$$m=65536,t=3,p=4$$kt5igrwWnuwaalxhFwcj5w$$0cet33vzielG6fBu1PgwrvknjfQIhsyzYDr5wn+NKio
+    LUMELIA_ENVIRONMENT: development
+    LUMELIA_COOKIE_SECURE: 'false'
+    LUMELIA_ALLOWED_ORIGINS: http://localhost:8080,http://127.0.0.1:8080
+    LUMELIA_PUBLIC_URL: http://localhost:8080
+    # Campaigns run in simulation; these two switches also keep every background job off the network.
+    LUMELIA_LIVE_ACTIONS_ENABLED: 'false'
+    LUMELIA_OFFLINE: 'true'
+
+services:
+  db:
+    image: postgres:17.7-alpine
+    networks: [internal]
+    environment:
+      POSTGRES_USER: lumelia
+      POSTGRES_DB: lumelia
+      POSTGRES_PASSWORD: lumelia
+    volumes:
+      - database:/var/lib/postgresql/data
+    healthcheck:
+      test: [CMD-SHELL, pg_isready -U lumelia -d lumelia]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  migrate:
+    <<: *app
+    command: [alembic, upgrade, head]
+    depends_on:
+      db:
+        condition: service_healthy
+
+  app:
+    <<: *app
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test: [CMD, python, -c, "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/health', timeout=3)"]
+      interval: 2s
+      timeout: 5s
+      retries: 30
+
+  # Creates the fictional workspace through the API on first start; a no-op afterwards.
+  seed:
+    <<: *app
+    command: [python, -m, scripts.seed_demo]
+    environment:
+      <<: *environment
+      LUMELIA_DEMO_URL: http://app:8000
+      LUMELIA_DEMO_PASSWORD: demo-password-1234
+    depends_on:
+      app:
+        condition: service_healthy
+
+  worker:
+    <<: *app
+    command: [python, -m, app.worker]
+    depends_on:
+      seed:
+        condition: service_completed_successfully
+
+  proxy:
+    image: caddy:2.11-alpine
+    command: [caddy, reverse-proxy, --from, ':8080', --to, 'app:8000']
+    networks: [internal, edge]
+    ports:
+      - 127.0.0.1:8080:8080
+    depends_on:
+      app:
+        condition: service_healthy
+
+networks:
+  internal:
+    internal: true
+  edge:
+
+volumes:
+  database:
