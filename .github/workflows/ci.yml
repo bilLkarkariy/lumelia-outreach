@@ -1,0 +1,93 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: Backend (lint, types, tests)
+    runs-on: ubuntu-24.04
+    services:
+      postgres:
+        image: postgres:17.7-alpine
+        env:
+          POSTGRES_USER: lumelia
+          POSTGRES_PASSWORD: lumelia
+          POSTGRES_DB: lumelia_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U lumelia -d lumelia_test"
+          --health-interval 2s
+          --health-timeout 3s
+          --health-retries 30
+    env:
+      LUMELIA_TEST_DATABASE_URL: postgresql+psycopg://lumelia:lumelia@127.0.0.1:5432/lumelia_test
+      UV_PYTHON: '3.14'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+        with:
+          version: 0.11.25
+          enable-cache: true
+          cache-dependency-glob: backend/uv.lock
+      # The backup test runs pg_dump, which must not be older than the server.
+      - name: Install the PostgreSQL 17 client
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q postgresql-common
+          sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y
+          sudo apt-get install -y -q postgresql-client-17
+          echo /usr/lib/postgresql/17/bin >> "$GITHUB_PATH"
+      - name: Install dependencies
+        run: uv sync --project backend --frozen
+      - name: Lint
+        run: uv run --project backend ruff check .
+      - name: Format
+        run: uv run --project backend ruff format --check .
+      - name: Type check
+        working-directory: backend
+        run: uv run mypy
+      - name: Migrations apply to an empty database
+        working-directory: backend
+        env:
+          LUMELIA_DATABASE_URL: ${{ env.LUMELIA_TEST_DATABASE_URL }}
+        run: uv run alembic upgrade head
+      - name: Tests
+        working-directory: backend
+        run: uv run pytest -q
+
+  frontend:
+    name: Frontend (lint, types, build)
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22.22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run format:check
+      - run: npm run typecheck
+      - run: npm run build
+
+  image:
+    name: Docker image builds
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - run: docker build -t lumelia-outreach:ci .
