@@ -1,0 +1,34 @@
+[project]
+name = "lumelia-outreach"
+version = "0.1.0"
+requires-python = ">=3.12"
+dependencies = [
+  "fastapi>=0.115,<1", "uvicorn[standard]>=0.34,<1",
+  "sqlalchemy>=2.0,<3", "psycopg[binary]>=3.2,<4", "alembic>=1.14,<2",
+  "pydantic-settings>=2.7,<3", "email-validator>=2.2,<3",
+  "argon2-cffi>=23.1", "cryptography>=44", "httpx>=0.28,<1",
+  "python-multipart>=0.0.20", "phonenumbers>=9,<10", "boto3>=1.35,<2",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8",
+    "pytest-cov>=6",
+    "ruff>=0.11",
+    "respx>=0.22",
+    "mypy>=1.15",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+
+[tool.mypy]
+python_version = "3.12"
+files = ["app"]
+plugins = ["pydantic.mypy"]
+ignore_missing_imports = true
+# Non-strict on purpose: most handlers are unannotated and are covered by tests instead.
+# Two codes are off because list endpoints pick mapped classes dynamically and narrow
+# optionals through helpers that raise HTTP 404, which mypy cannot follow.
+disable_error_code = ["attr-defined", "union-attr"]
