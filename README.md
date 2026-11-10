@@ -84,12 +84,11 @@ flowchart TB
     Runner --> CLI[Coding-agent CLI]
     CLI -->|MCP: save result| MCP[MCP server]
     MCP --> API
-    API -->|signed webhooks| Voice[Twilio · Deepgram]
-    Worker[Worker loop] -->|enrichment jobs| Providers[Hunter · FullEnrich<br/>Apollo · Apify]
-    Worker -->|SMTP send| Mail[Mailboxes]
-    Mail -->|IMAP replies| Worker
-    API <---> DB[(PostgreSQL)]
-    Worker <---> DB
+    API <--> DB[(PostgreSQL)]
+    Worker[Worker loop] <--> DB
+    API -->|signed webhooks| Voice[Twilio<br/>Deepgram]
+    Worker -->|enrichment jobs| Providers[Hunter · Apollo<br/>FullEnrich · Apify]
+    Worker <-->|SMTP out · IMAP in| Mail[Mailboxes]
 ```
 
 The API and the worker are the same image with two commands. PostgreSQL is the only store and the
@@ -102,36 +101,36 @@ The journey of a contact, from discovery to follow-up:
 flowchart TB
     subgraph Q["1 · Find and qualify"]
         direction LR
-        A[Company found<br/>Hunter · Places · CSV] --> B{{Excluded?<br/>customer · paused<br/>suppressed · protected}}
-        B -->|no| C[Site and register read<br/>fit scored out of 100]
+        A[Company found<br/>Hunter · Places<br/>CSV import] --> B{{Excluded?}}
+        B -->|no| C[Site and register<br/>read, fit scored]
         B -->|yes| X[Dropped<br/>no credit spent]
         C -->|not a fit| X
     end
     subgraph E["2 · Enrich"]
         direction LR
-        D[Budget reserved] --> F[Contact enriched<br/>domain search<br/>verification · FullEnrich]
-        F -->|result| G[Contact approved<br/>by a person]
-        F -->|outcome unknown| U[Job uncertain<br/>reconciled by a person<br/>never retried]
+        D[Budget reserved] --> F[Contact enriched<br/>Hunter cascade<br/>FullEnrich]
+        F -->|result| G[Approved<br/>by a person]
+        F -->|outcome unknown| U[Job uncertain<br/>never retried]
     end
     subgraph S["3 · Send"]
         direction LR
-        H[Drafts prepared<br/>approved by a person] --> I{{Mailbox ready?<br/>caps · ramp-up · window}}
+        H[Drafts approved<br/>by a person] --> I{{Mailbox ready?}}
         I -->|yes| J[Email sent<br/>or simulated]
         J --> K[Follow-up<br/>queued]
         K --> I
     end
     subgraph R["4 · Stop on an answer"]
-        direction TB
-        M[Reply · out of office<br/>company paused<br/>pending steps cancelled]
-        N[Bounce<br/>address invalid<br/>emails cancelled]
-        O[Opt-out<br/>suppressed on<br/>every channel]
+        direction LR
+        M[Reply<br/>company paused<br/>steps cancelled] ~~~ N[Bounce<br/>address invalid<br/>emails cancelled] ~~~ O[Opt-out<br/>suppressed on<br/>every channel]
     end
     Q -->|fit| E --> S --> R
 ```
 
-A send that is not yet allowed is postponed, not cancelled. Replies, out-of-office notices and bounces
-arrive over IMAP; an opt-out comes from the unsubscribe link or from a reply a person classifies in
-the inbox.
+Exclusions cover customers, paused or suppressed records and protected domains. An uncertain job
+waits for a person to reconcile it. A send that is not yet allowed (caps, ramp-up, sending window)
+is postponed, not cancelled. Replies, out-of-office notices (handled like a reply) and bounces arrive
+over IMAP; an opt-out comes from the unsubscribe link or from a reply a person classifies in the
+inbox.
 
 ## Design decisions
 
@@ -207,7 +206,7 @@ uv run --project backend ruff format --check .
 
 ```
 backend/
-  app/            FastAPI application: domain rules, worker, providers, mail, calls, agent API
+  app/            FastAPI app: domain rules, worker, providers, mail, calls, agent API
   migrations/     Alembic migrations
   scripts/        backup and restore, demo seed, password setup
   tests/          pytest suite (PostgreSQL)
