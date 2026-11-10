@@ -78,18 +78,18 @@ Everything shown is invented demo data running in simulation mode.
 ## Architecture
 
 ```mermaid
-flowchart LR
+flowchart TB
     UI[React UI] -->|session cookie + CSRF| API[FastAPI API]
-    API <--> DB[(PostgreSQL)]
-    Worker[Worker loop] <--> DB
     Runner[Agent runner] -->|bearer token + lease| API
     Runner --> CLI[Coding-agent CLI]
     CLI -->|MCP: save result| MCP[MCP server]
     MCP --> API
+    API -->|signed webhooks| Voice[Twilio · Deepgram]
+    Worker[Worker loop] -->|enrichment jobs| Providers[Hunter · FullEnrich<br/>Apollo · Apify]
     Worker -->|SMTP send| Mail[Mailboxes]
     Mail -->|IMAP replies| Worker
-    Worker -->|enrichment jobs| Providers[Hunter · FullEnrich · Apollo · Apify]
-    API -->|signed webhooks| Voice[Twilio · Deepgram]
+    API <---> DB[(PostgreSQL)]
+    Worker <---> DB
 ```
 
 The API and the worker are the same image with two commands. PostgreSQL is the only store and the
@@ -99,26 +99,39 @@ serves the compiled UI, so a deployment is one origin behind a TLS proxy.
 The journey of a contact, from discovery to follow-up:
 
 ```mermaid
-flowchart TD
-    A[Company discovered<br/>Hunter Discover · Places · CSV] --> B{Excluded?<br/>customer · paused · suppressed · protected domain}
-    B -->|yes| X[Dropped, no credit spent]
-    B -->|no| C[Public site and register read<br/>fit scored out of 100]
-    C -->|not a fit| X
-    C -->|fit| D[Budget reserved]
-    D --> E[Contact enriched<br/>domain search · verification · FullEnrich]
-    E -->|outcome unknown| U[Job uncertain<br/>reconciled by a person, never retried]
-    E -->|result| F[Contact approved by a person]
-    F --> G[Sequence prepared as drafts<br/>emails approved by a person]
-    G --> H{Mailbox ready?<br/>caps · ramp-up · sending window}
-    H -->|not yet| H
-    H -->|yes| I[Email sent<br/>or simulated]
-    I --> J[Follow-up queued]
-    J --> H
-    I --> K{Answer over IMAP?}
-    K -->|reply · out of office| L[Company paused, pending steps cancelled,<br/>review task for a person]
-    K -->|bounce| M[Address invalid, emails cancelled]
-    K -->|opt-out| N[Suppressed on every channel]
+flowchart TB
+    subgraph Q["1 · Find and qualify"]
+        direction LR
+        A[Company found<br/>Hunter · Places · CSV] --> B{{Excluded?<br/>customer · paused<br/>suppressed · protected}}
+        B -->|no| C[Site and register read<br/>fit scored out of 100]
+        B -->|yes| X[Dropped<br/>no credit spent]
+        C -->|not a fit| X
+    end
+    subgraph E["2 · Enrich"]
+        direction LR
+        D[Budget reserved] --> F[Contact enriched<br/>domain search<br/>verification · FullEnrich]
+        F -->|result| G[Contact approved<br/>by a person]
+        F -->|outcome unknown| U[Job uncertain<br/>reconciled by a person<br/>never retried]
+    end
+    subgraph S["3 · Send"]
+        direction LR
+        H[Drafts prepared<br/>approved by a person] --> I{{Mailbox ready?<br/>caps · ramp-up · window}}
+        I -->|yes| J[Email sent<br/>or simulated]
+        J --> K[Follow-up<br/>queued]
+        K --> I
+    end
+    subgraph R["4 · Stop on an answer"]
+        direction TB
+        M[Reply · out of office<br/>company paused<br/>pending steps cancelled]
+        N[Bounce<br/>address invalid<br/>emails cancelled]
+        O[Opt-out<br/>suppressed on<br/>every channel]
+    end
+    Q -->|fit| E --> S --> R
 ```
+
+A send that is not yet allowed is postponed, not cancelled. Replies, out-of-office notices and bounces
+arrive over IMAP; an opt-out comes from the unsubscribe link or from a reply a person classifies in
+the inbox.
 
 ## Design decisions
 
@@ -161,9 +174,10 @@ containers sit on a network with no route to the outside. `docker compose down -
 Requirements: Python 3.12 or later with [uv](https://docs.astral.sh/uv/), Node 22, PostgreSQL 17.
 
 ```bash
-cp backend/.env.example backend/.env             # set LUMELIA_DATABASE_URL and LUMELIA_ENCRYPTION_KEY
+cp backend/.env.example backend/.env
+# edit backend/.env: set LUMELIA_DATABASE_URL and LUMELIA_ENCRYPTION_KEY
 (cd backend && uv sync && uv run python scripts/set_access_password.py)
-./run-local.sh                                   # migrations, API, worker and Vite dev server
+./run-local.sh   # migrations, API, worker and Vite dev server
 ```
 
 The interface is then on <http://127.0.0.1:5173>. To load the demo data into that database, run
@@ -178,9 +192,11 @@ The backend tests need a PostgreSQL database named `lumelia_test`:
 docker run -d --name lumelia-testdb -e POSTGRES_USER=lumelia -e POSTGRES_DB=lumelia_test \
   -e POSTGRES_HOST_AUTH_METHOD=trust -p 127.0.0.1:55439:5432 postgres:17.7-alpine
 
-uv run --project backend ruff check . && uv run --project backend ruff format --check .
+uv run --project backend ruff check .
+uv run --project backend ruff format --check .
 (cd backend && uv run mypy && uv run pytest -q)
-(cd frontend && npm ci && npm run lint && npm run format:check && npm run typecheck && npm run build)
+(cd frontend && npm ci && npm run lint && npm run format:check \
+  && npm run typecheck && npm run build)
 ```
 
 `LUMELIA_TEST_DATABASE_URL` points the tests at another database; the backup test also needs
