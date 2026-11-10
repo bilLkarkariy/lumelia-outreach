@@ -1,0 +1,63 @@
+.prospect-company-link {
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: var(--text, #243c32);
+  text-align: left;
+  line-height: 1.45;
+  font-weight: 600;
+  font-size: 12px;
+}
+.prospect-company-link:hover {
+  text-decoration: underline;
+}
+.company-prospect section {
+  padding: 18px 0;
+  border-bottom: 1px solid #e9ece6;
+}
+.company-prospect section h3 {
+  font-size: 13px;
+  margin: 0 0 10px;
+}
+.company-prospect section p {
+  font-size: 13px;
+  line-height: 1.6;
+}
+.prospect-checks {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.prospect-checks li {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 7px 0;
+  font-size: 12px;
+}
+.prospect-checks strong {
+  white-space: nowrap;
+  font-size: 11px;
+}
+.prospect-call-brief {
+  white-space: pre-line;
+}
+.prospect-proof {
+  border-bottom: 1px solid #eee;
+  padding: 10px 0;
+  font-size: 12px;
+}
+.prospect-proof p {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.company-prospect details {
+  padding: 20px 0;
+  font-size: 12px;
+}
+.company-prospect > header h2 {
+  font-size: 21px;
+}
+.company-prospect .prospect-priority small {
+  font-size: 11px;
+}

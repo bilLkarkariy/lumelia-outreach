@@ -1,0 +1,48 @@
+/** Feedback for native form validation: inline message per field and one summary. */
+.form-error-summary {
+  margin: 0 0 18px;
+  padding: 13px 15px;
+  border: 1px solid #e3b4ae;
+  border-radius: 8px;
+  background: #fbeeee;
+  color: #8f3a34;
+  font-size: 12px;
+}
+.form-error-summary strong {
+  display: block;
+  font-weight: 600;
+}
+.form-error-summary ul {
+  margin: 9px 0 0;
+  padding-left: 17px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.form-error-summary a {
+  color: #8f3a34;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.form-error-summary a:hover {
+  color: #6f2c27;
+}
+.field-error {
+  margin: -12px 0 16px;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.5;
+  color: #9d3f39;
+}
+.ws-field > .field-error,
+.cp-field > .field-error,
+.wf-call-upload .field-error {
+  margin: 4px 0 0;
+}
+.field-invalid {
+  border-color: #cf8f88 !important;
+  background: #fffafa;
+}
+.field-invalid:focus {
+  outline-color: #b96a62;
+}

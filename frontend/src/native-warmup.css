@@ -1,0 +1,238 @@
+.native-warmup header {
+  align-items: flex-start;
+  gap: 16px;
+}
+.native-warmup header .badge {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+  white-space: nowrap;
+}
+.nw-explanation {
+  margin-top: 0;
+  max-width: 85ch;
+  color: var(--muted);
+  line-height: 1.6;
+}
+.nw-mailboxes {
+  display: grid;
+  gap: 12px;
+  margin: 20px 0;
+}
+.nw-mailbox {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 16px;
+  min-width: 0;
+}
+.nw-mailbox-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.nw-mailbox-heading strong {
+  overflow-wrap: anywhere;
+}
+.nw-state {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 12px 0;
+  font-size: 13px;
+  font-weight: 600;
+}
+.nw-state.awaiting,
+.nw-state.empty {
+  color: var(--muted);
+}
+.nw-state.incident {
+  color: var(--red);
+}
+.nw-counts {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin: 14px 0;
+}
+.nw-counts > div {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 10px;
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+.nw-counts span,
+.nw-counts small {
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.35;
+}
+.nw-counts strong {
+  font-size: 18px;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+.nw-cadence {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px 12px;
+  padding: 10px 0;
+  border-top: 1px solid var(--line);
+  font-size: 13px;
+}
+.nw-cadence span {
+  color: var(--muted);
+}
+.nw-schedule,
+.nw-muted {
+  font-size: 12px;
+  color: var(--muted);
+}
+.nw-schedule {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin: 10px 0;
+}
+.nw-history {
+  display: grid;
+  gap: 10px;
+  padding-top: 12px;
+}
+.nw-history small {
+  display: block;
+  overflow-wrap: anywhere;
+  margin-top: 3px;
+}
+.nw-method {
+  margin: 16px 0;
+}
+.nw-method p {
+  max-width: 85ch;
+  font-size: 13px;
+  line-height: 1.6;
+}
+.nw-controls {
+  border-top: 1px solid var(--line);
+  padding-top: 16px;
+  display: grid;
+  gap: 16px;
+  justify-items: start;
+}
+.nw-controls fieldset {
+  border: 0;
+  margin: 12px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+}
+.nw-controls legend {
+  margin-bottom: 12px;
+  font-size: 13px;
+  font-weight: 600;
+}
+.nw-confirm {
+  margin: 6px 0;
+  max-width: 80ch;
+  align-items: flex-start;
+}
+.nw-controls button {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  justify-self: start;
+}
+.nw-progress {
+  margin: 18px 0;
+  padding: 14px 0;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+.nw-progress-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.nw-progress-heading > div > strong {
+  font-size: 29px;
+  color: var(--ink);
+  letter-spacing: -1px;
+}
+.nw-progress-heading > div > strong span {
+  font-size: 17px;
+}
+.nw-progress-heading > div > span {
+  font-size: 12px;
+  color: var(--muted);
+}
+.nw-progress progress {
+  display: block;
+  width: 100%;
+  height: 8px;
+  border: 0;
+  border-radius: 8px;
+  overflow: hidden;
+  margin: 12px 0;
+  background: var(--line);
+  accent-color: var(--green);
+}
+.nw-progress progress::-webkit-progress-bar {
+  background: var(--line);
+  border-radius: 8px;
+}
+.nw-progress progress::-webkit-progress-value {
+  background: var(--green);
+  border-radius: 8px;
+}
+.nw-progress progress::-moz-progress-bar {
+  background: var(--green);
+  border-radius: 8px;
+}
+.nw-progress-goals {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 24px;
+  font-size: 12px;
+  margin-bottom: 10px;
+}
+.nw-validation {
+  margin: 12px 0;
+  font-size: 12px;
+  line-height: 1.6;
+}
+.nw-validation ul {
+  margin: 10px 0;
+  padding-left: 18px;
+}
+.nw-validation a {
+  overflow-wrap: anywhere;
+}
+.nw-progress-actions button {
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  text-align: left;
+}
+@media (max-width: 720px) {
+  .nw-counts {
+    grid-template-columns: 1fr;
+  }
+}
+@media (max-width: 600px) {
+  .native-warmup header {
+    flex-wrap: wrap;
+  }
+  .nw-mailbox {
+    padding: 12px;
+  }
+  .nw-controls .checkbox {
+    align-items: flex-start;
+    overflow-wrap: anywhere;
+  }
+}
